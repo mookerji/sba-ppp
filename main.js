@@ -25,6 +25,7 @@ map.on("load", function () {
   loadData().then((data) => init(data));
 });
 
+// Render a menu
 map.on("click", (e) => {
   const filteredFeatures = map
     .queryRenderedFeatures(e.point)
@@ -39,10 +40,12 @@ map.on("click", (e) => {
   const avg_loan_min = (zip_code_data.AvgLoanMin / 10 ** 6).toFixed(2) || "n/a";
   let description = `<strong>Zip Code</strong>: ${zip_code}<br/>`;
   description += `<strong>Total Recipients</strong>: ${total_recipients}<br/>`;
-  description += `<strong>Total Minimum Loaned ($)</strong>: ${min_loan}M<br/>`;
-  description += `<strong>Avg. Minimum Loaned ($)</strong>: ${avg_loan_min}M<br/>`;
+  description += `<strong>Total Minimum Loaned</strong>: \$${min_loan}M<br/>`;
+  description += `<strong>Avg. Minimum Loaned</strong>: \$${avg_loan_min}M<br/>`;
   popup.setLngLat(e.lngLat).setHTML(description).addTo(map);
 });
+
+// Datasets
 
 const RECIPIENTS =
   "https://raw.githubusercontent.com/mookerji/sba-ppp/master/data/zip-recipients.csv";
@@ -67,6 +70,7 @@ async function loadData() {
   return DATA;
 }
 
+// Initialize the map
 async function init(data) {
   map.addSource("zips", {
     type: "vector",
@@ -78,6 +82,14 @@ async function init(data) {
     Object.keys(data.recipients).map((zip) => ["==", "BASENAME", zip])
   );
 
+  const recipients_count = Object.assign(
+    {},
+    ...Object.keys(data.recipients).map((zip) => ({
+      [String(zip)]: data.recipients[zip].RecipientCount,
+    }))
+  );
+  console.log(recipients_count);
+
   map.addLayer({
     id: "zips-boundaries",
     type: "line",
@@ -85,20 +97,31 @@ async function init(data) {
     "source-layer": "ZCTA5",
     filter: filter_expression,
   });
+  const max_recipients = 1.5*Math.max(...Object.values(recipients_count).slice(1));
+  const min_recipients = Math.min(...Object.values(recipients_count).slice(1));
+  console.log(max_recipients, Object.values(recipients_count));
 
+  const match_expression = ["match", ["get", "BASENAME"]]
+    .concat(
+      Object.keys(recipients_count).map((zip) => [
+        zip,
+        recipients_count[zip] / max_recipients,
+      ]).flat()
+    )
+    .concat(0);
   map.addLayer({
     id: "zip-fills",
     type: "fill",
     source: "zips",
     "source-layer": "ZCTA5",
     paint: {
-      "fill-opacity": 0.05,
-      "fill-color": "blue",
+      "fill-opacity": match_expression,
+      "fill-color": "orange",
     },
     filter: filter_expression,
   });
 
-  map.addLayer({
+p  map.addLayer({
     id: "zip-ids",
     type: "symbol",
     source: "zips",
