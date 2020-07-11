@@ -97,16 +97,16 @@ async function init(data) {
     "source-layer": "ZCTA5",
     filter: filter_expression,
   });
-  const max_recipients = 1.5*Math.max(...Object.values(recipients_count).slice(1));
+  const max_recipients =
+    1.5 * Math.max(...Object.values(recipients_count).slice(1));
   const min_recipients = Math.min(...Object.values(recipients_count).slice(1));
   console.log(max_recipients, Object.values(recipients_count));
 
   const match_expression = ["match", ["get", "BASENAME"]]
     .concat(
-      Object.keys(recipients_count).map((zip) => [
-        zip,
-        recipients_count[zip] / max_recipients,
-      ]).flat()
+      Object.keys(recipients_count)
+        .map((zip) => [zip, recipients_count[zip] / max_recipients])
+        .flat()
     )
     .concat(0);
   map.addLayer({
@@ -121,7 +121,7 @@ async function init(data) {
     filter: filter_expression,
   });
 
-p  map.addLayer({
+  map.addLayer({
     id: "zip-ids",
     type: "symbol",
     source: "zips",
