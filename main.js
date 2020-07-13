@@ -59,7 +59,6 @@ map.on("click", (e) => {
       "</li>";
   }
   ranked += "</ul>";
-  console.log(ranked);
   description += `<strong>Top Recipients</strong>: ${ranked}`;
   popup.setLngLat(e.lngLat).setHTML(description).addTo(map);
 });
@@ -158,7 +157,6 @@ async function init(data) {
     },
   });
 
-  console.log("data", data);
 
   const loan_min_amount = Object.assign(
     {},
