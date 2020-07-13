@@ -11,7 +11,7 @@ const map = new mapboxgl.Map({
   container: "map",
   style: "mapbox://styles/mapbox/light-v10",
   center: [-122.4194, 37.7749],
-  minZoom: 9,
+  minZoom: 10,
 });
 const filterGroup = document.getElementById("filter-group");
 const popup = new mapboxgl.Popup({
