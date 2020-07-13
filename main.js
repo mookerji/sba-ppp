@@ -113,55 +113,26 @@ async function init(data) {
     filter: filter_expression,
   });
 
-  const recipients_count = Object.assign(
-    {},
-    ...Object.keys(data.recipients).map((zip) => ({
-      [String(zip)]: data.recipients[zip].RecipientCount,
-    }))
-  );
   const loan_min_amount = Object.assign(
     {},
     ...Object.keys(data.recipients).map((zip) => ({
       [String(zip)]: data.recipients[zip].LoanMin,
     }))
   );
-
-  const max_recipients =
-    1.5 * Math.max(...Object.values(recipients_count).slice(1));
-  const min_recipients = Math.min(...Object.values(recipients_count).slice(1));
+  const max_amount = Math.max(...Object.values(loan_min_amount).slice(1));
+  const min_amount = Math.min(...Object.values(loan_min_amount).slice(1));
+  const to_color = d3
+    .scaleQuantize()
+    .domain([min_amount, max_amount])
+    .range(["#fef0d9", "#fdd49e", "#fdbb84", "#fc8d59", "#e34a33", "#b30000"]);
 
   const color_expression = ["match", ["get", "BASENAME"]]
     .concat(
-      Object.keys(recipients_count)
-        .map((zip) => [zip, recipients_count[zip] / max_recipients])
-        .flat()
-    )
-    .concat(0);
-
-  const max_amount = Math.max(...Object.values(loan_min_amount).slice(1));
-  const min_amount = Math.min(...Object.values(loan_min_amount).slice(1));
-  const opacity = d3
-    .scaleQuantize()
-    .domain([min_amount, max_amount])
-    .range(["#fef0d9", "#fdcc8a", "#fc8d59", "#d7301f"]);
-
-  const color_expression1 = ["match", ["get", "BASENAME"]]
-    .concat(
       Object.keys(loan_min_amount)
-        .map((zip) => [zip, loan_min_amount[zip] / max_amount])
+        .map((zip) => [zip, to_color(loan_min_amount[zip]) || "#fef0d9"])
         .flat()
     )
-    .concat(0);
-
-  const color_expression2 = ["match", ["get", "BASENAME"]]
-    .concat(
-      Object.keys(loan_min_amount)
-            .map((zip) => [zip, opacity(loan_min_amount[zip]) || "#d7301f"])
-        .flat()
-    )
-      .concat("#d7301f");
-
-    console.log(color_expression2);
+    .concat("#fef0d9");
 
   map.addLayer({
     id: "zip-fills",
@@ -170,7 +141,7 @@ async function init(data) {
     "source-layer": "ZCTA5",
     paint: {
       "fill-opacity": 0.7,
-      "fill-color": color_expression2,
+      "fill-color": color_expression,
     },
     filter: filter_expression,
   });
