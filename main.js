@@ -19,6 +19,8 @@ const popup = new mapboxgl.Popup({
   closeOnClick: false,
 });
 
+// const filterGroup = document.getElementById("filter-group");
+
 let DATA = {};
 
 map.on("load", function () {
@@ -44,6 +46,27 @@ map.on("click", (e) => {
   description += `<strong>Avg. Minimum Loaned</strong>: \$${avg_loan_min}M<br/>`;
   popup.setLngLat(e.lngLat).setHTML(description).addTo(map);
 });
+
+function addLayerSelect(layer_id, checked = true) {
+  var input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = layer_id;
+  input.checked = checked;
+  filterGroup.appendChild(input);
+
+  var label = document.createElement("label");
+  label.setAttribute("for", layer_id);
+  label.textContent = layer_id;
+  filterGroup.appendChild(label);
+
+  input.addEventListener("change", function (e) {
+    map.setLayoutProperty(
+      layer_id,
+      "visibility",
+      e.target.checked ? "visible" : "none"
+    );
+  });
+}
 
 // Datasets
 
@@ -82,14 +105,6 @@ async function init(data) {
     Object.keys(data.recipients).map((zip) => ["==", "BASENAME", zip])
   );
 
-  const recipients_count = Object.assign(
-    {},
-    ...Object.keys(data.recipients).map((zip) => ({
-      [String(zip)]: data.recipients[zip].RecipientCount,
-    }))
-  );
-  console.log(recipients_count);
-
   map.addLayer({
     id: "zips-boundaries",
     type: "line",
@@ -97,26 +112,65 @@ async function init(data) {
     "source-layer": "ZCTA5",
     filter: filter_expression,
   });
+
+  const recipients_count = Object.assign(
+    {},
+    ...Object.keys(data.recipients).map((zip) => ({
+      [String(zip)]: data.recipients[zip].RecipientCount,
+    }))
+  );
+  const loan_min_amount = Object.assign(
+    {},
+    ...Object.keys(data.recipients).map((zip) => ({
+      [String(zip)]: data.recipients[zip].LoanMin,
+    }))
+  );
+
   const max_recipients =
     1.5 * Math.max(...Object.values(recipients_count).slice(1));
   const min_recipients = Math.min(...Object.values(recipients_count).slice(1));
-  console.log(max_recipients, Object.values(recipients_count));
 
-  const match_expression = ["match", ["get", "BASENAME"]]
+  const color_expression = ["match", ["get", "BASENAME"]]
     .concat(
       Object.keys(recipients_count)
         .map((zip) => [zip, recipients_count[zip] / max_recipients])
         .flat()
     )
     .concat(0);
+
+  const max_amount = Math.max(...Object.values(loan_min_amount).slice(1));
+  const min_amount = Math.min(...Object.values(loan_min_amount).slice(1));
+  const opacity = d3
+    .scaleQuantize()
+    .domain([min_amount, max_amount])
+    .range(["#fef0d9", "#fdcc8a", "#fc8d59", "#d7301f"]);
+
+  const color_expression1 = ["match", ["get", "BASENAME"]]
+    .concat(
+      Object.keys(loan_min_amount)
+        .map((zip) => [zip, loan_min_amount[zip] / max_amount])
+        .flat()
+    )
+    .concat(0);
+
+  const color_expression2 = ["match", ["get", "BASENAME"]]
+    .concat(
+      Object.keys(loan_min_amount)
+            .map((zip) => [zip, opacity(loan_min_amount[zip]) || "#d7301f"])
+        .flat()
+    )
+      .concat("#d7301f");
+
+    console.log(color_expression2);
+
   map.addLayer({
     id: "zip-fills",
     type: "fill",
     source: "zips",
     "source-layer": "ZCTA5",
     paint: {
-      "fill-opacity": match_expression,
-      "fill-color": "orange",
+      "fill-opacity": 0.7,
+      "fill-color": color_expression2,
     },
     filter: filter_expression,
   });
