@@ -44,6 +44,19 @@ map.on("click", (e) => {
   description += `<strong>Total Recipients</strong>: ${total_recipients}<br/>`;
   description += `<strong>Total Minimum Loaned</strong>: \$${min_loan}M<br/>`;
   description += `<strong>Avg. Minimum Loaned</strong>: \$${avg_loan_min}M<br/>`;
+  //
+  const zip_code_recipients = DATA.top_recipients[zip_code] || [];
+  let ranked = "<ul>";
+  for (const zc of zip_code_recipients) {
+    ranked +=
+      " <li>" +
+      zc.NAICSIndustry.trim() +
+      ` (${zc.PctLoanMin.toFixed(2)}%)` +
+      "</li>";
+  }
+  ranked += "</ul>";
+  console.log(ranked);
+  description += `<strong>Top Recipients</strong>: ${ranked}`;
   popup.setLngLat(e.lngLat).setHTML(description).addTo(map);
 });
 
@@ -73,6 +86,9 @@ function addLayerSelect(layer_id, checked = true) {
 const RECIPIENTS =
   "https://raw.githubusercontent.com/mookerji/sba-ppp/master/data/zip-recipients.csv";
 
+const TOP_PRECIPIENTS =
+  "https://raw.githubusercontent.com/mookerji/sba-ppp/master/data/pct_loan_by_zip_code_top10.csv";
+
 function parseRecipients(data) {
   return Papa.parse(data, { header: true }).data.reduce(function (m, e) {
     m[Number(e.Zip)] = {
@@ -86,10 +102,31 @@ function parseRecipients(data) {
   }, {});
 }
 
+// Zip,NAICSIndustry,PctLoanMin
+
+function parseTopRecipients(data) {
+  return Papa.parse(data, { header: true }).data.reduce(function (m, e) {
+    const item = {
+      NAICSIndustry: e.NAICSIndustry,
+      PctLoanMin: Number(e.PctLoanMin),
+    };
+    if (!m[Number(e.Zip)]) {
+      m[Number(e.Zip)] = [item];
+    } else {
+      m[Number(e.Zip)].push(item);
+    }
+    return m;
+  }, {});
+}
+
 async function loadData() {
-  const response = await fetch(RECIPIENTS);
+  let response = await fetch(RECIPIENTS);
   let recipients = await response.text();
   DATA.recipients = parseRecipients(recipients);
+
+  response = await fetch(TOP_PRECIPIENTS);
+  recipients = await response.text();
+  DATA.top_recipients = parseTopRecipients(recipients);
   return DATA;
 }
 
@@ -112,6 +149,8 @@ async function init(data) {
     "source-layer": "ZCTA5",
     filter: filter_expression,
   });
+
+  console.log("data", data);
 
   const loan_min_amount = Object.assign(
     {},
