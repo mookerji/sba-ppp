@@ -27,7 +27,7 @@ map.on("load", function () {
   loadData().then((data) => init(data));
 });
 
-const PB_URL = 'https://projects.propublica.org/coronavirus/bailouts/search?q=';
+const PB_URL = "https://projects.propublica.org/coronavirus/bailouts/search?q=";
 
 // Render a menu
 map.on("click", (e) => {
@@ -42,7 +42,9 @@ map.on("click", (e) => {
   const total_recipients = zip_code_data.RecipientCount || "n/a";
   const min_loan = (zip_code_data.LoanMin / 10 ** 6).toFixed(2) || "n/a";
   const avg_loan_min = (zip_code_data.AvgLoanMin / 10 ** 6).toFixed(2) || "n/a";
-  let description = `<strong>Zip Code</strong>: <a href="${PB_URL + zip_code}">${zip_code}</a><br/>`;
+  let description = `<strong>Zip Code</strong>: <a href="${
+    PB_URL + zip_code
+  }">${zip_code}</a><br/>`;
   description += `<strong>Total Recipients</strong>: ${total_recipients}<br/>`;
   description += `<strong>Total Minimum Loaned</strong>: \$${min_loan}M<br/>`;
   description += `<strong>Avg. Minimum Loaned</strong>: \$${avg_loan_min}M<br/>`;
@@ -150,6 +152,10 @@ async function init(data) {
     source: "zips",
     "source-layer": "ZCTA5",
     filter: filter_expression,
+    paint: {
+      "line-width": 2,
+      "line-opacity": 0.8,
+    },
   });
 
   console.log("data", data);
